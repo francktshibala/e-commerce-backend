@@ -28,12 +28,23 @@ const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later'
 });
 
-// Middleware
-app.use(helmet()); // Set security-related HTTP headers
+// CORS configuration - Modified to be more permissive for development
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: '*', // Allow all origins - more restrictive in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// Helmet configuration - Modify to allow Swagger UI to work properly
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Disable CSP for Swagger UI
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+  })
+);
+
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', apiLimiter); // Apply rate limiting to all API routes
@@ -46,6 +57,19 @@ app.use('/api/categories', categoryRoutes);
 let swaggerDocument;
 try {
   swaggerDocument = JSON.parse(fs.readFileSync('./swagger.json', 'utf8'));
+  
+  // Dynamically update the server URL based on environment
+  const host = process.env.NODE_ENV === 'production' 
+    ? process.env.RENDER_EXTERNAL_URL || 'https://your-app.onrender.com'
+    : `http://localhost:${PORT}`;
+    
+  swaggerDocument.servers = [
+    {
+      url: `${host}/api`,
+      description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Local server'
+    }
+  ];
+  
 } catch (error) {
   console.error('Error loading swagger.json file:', error);
   // Fallback to a basic Swagger document if file not found
@@ -58,15 +82,20 @@ try {
     },
     servers: [
       {
-        url: "http://localhost:5000/api",
-        description: "Local server"
+        url: process.env.NODE_ENV === 'production' 
+          ? (process.env.RENDER_EXTERNAL_URL || 'https://your-app.onrender.com') + '/api'
+          : `http://localhost:${PORT}/api`,
+        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Local server'
       }
     ]
   };
 }
 
 // API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  explorer: true,
+  customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-feeling-blue.css'
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -88,6 +117,8 @@ app.use(errorHandler);  // Handle all errors
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Access the API documentation at http://localhost:${PORT}/api-docs`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // For testing purposes
