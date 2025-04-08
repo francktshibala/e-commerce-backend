@@ -3,8 +3,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-const swaggerUi = require('swagger-ui-express');
 const fs = require('fs');
+const swaggerUi = require('swagger-ui-express');
+const rateLimit = require('express-rate-limit');
 
 // Import routes
 const productRoutes = require('./routes/product.routes');
@@ -20,6 +21,13 @@ const PORT = process.env.PORT || 5000;
 // Connect to MongoDB
 require('./config/db.config');
 
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later'
+});
+
 // Middleware
 app.use(helmet()); // Set security-related HTTP headers
 app.use(cors({
@@ -28,6 +36,7 @@ app.use(cors({
 }));
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
+app.use('/api', apiLimiter); // Apply rate limiting to all API routes
 
 // Routes
 app.use('/api/products', productRoutes);
@@ -39,11 +48,11 @@ try {
   swaggerDocument = JSON.parse(fs.readFileSync('./swagger.json', 'utf8'));
 } catch (error) {
   console.error('Error loading swagger.json file:', error);
-  // We'll create a new swagger document with just products and categories
+  // Fallback to a basic Swagger document if file not found
   swaggerDocument = {
     openapi: "3.0.3",
     info: {
-      title: "E-Commerce API",
+      title: "E-Commerce Backend",
       description: "API documentation for the e-commerce backend with product and category management",
       version: "1.0.0"
     },
@@ -52,18 +61,7 @@ try {
         url: "http://localhost:5000/api",
         description: "Local server"
       }
-    ],
-    tags: [
-      {
-        name: "Products",
-        description: "Product management"
-      },
-      {
-        name: "Categories",
-        description: "Category management"
-      }
-    ],
-    paths: {}
+    ]
   };
 }
 
@@ -78,7 +76,7 @@ app.get('/health', (req, res) => {
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
-    message: 'Welcome to the E-commerce API',
+    message: 'Welcome to the E-commerce Backend',
     documentation: '/api-docs'
   });
 });
