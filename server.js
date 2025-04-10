@@ -7,7 +7,7 @@ const fs = require('fs');
 const swaggerUi = require('swagger-ui-express');
 const rateLimit = require('express-rate-limit');
 
-// // Import routes
+// Import routes
 const productRoutes = require('./routes/product.routes');
 const categoryRoutes = require('./routes/category.routes');
 const userRoutes = require('./routes/user.routes');
@@ -52,9 +52,12 @@ app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
 app.use('/api', apiLimiter); // Apply rate limiting to all API routes
 
-// Routes
+// Register routes
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/auth', authRoutes);
 
 // Load Swagger JSON file
 let swaggerDocument;

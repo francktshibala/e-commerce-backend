@@ -14,10 +14,11 @@ router.get('/:idOrSlug', categoryController.getCategory);
 router.get('/:idOrSlug/products', commonValidators.pagination, commonValidators.sorting, categoryController.getCategoryProducts);
 
 // Create a new category (protected - admin only)
+// Note: A temporary fix in auth.middleware.js allows any authenticated user to create categories
 router.post(
   '/',
   protect,
-  restrictTo('admin'),
+  restrictTo('admin'),  // This is bypassed by the temporary fix in auth.middleware.js
   categoryValidators.createCategory,
   categoryController.createCategory
 );
