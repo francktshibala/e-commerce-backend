@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const categoryController = require('../controllers/category.controller');
+const { protect, restrictTo } = require('../middleware/auth.middleware');
 const { categoryValidators, commonValidators } = require('../middleware/validation.middleware');
 
 // Get all categories
@@ -12,13 +13,32 @@ router.get('/:idOrSlug', categoryController.getCategory);
 // Get products by category
 router.get('/:idOrSlug/products', commonValidators.pagination, commonValidators.sorting, categoryController.getCategoryProducts);
 
-// Create a new category
-router.post('/', categoryValidators.createCategory, categoryController.createCategory);
+// Create a new category (protected - admin only)
+router.post(
+  '/',
+  protect,
+  restrictTo('admin'),
+  categoryValidators.createCategory,
+  categoryController.createCategory
+);
 
-// Update a category
-router.put('/:id', categoryValidators.categoryId, categoryController.updateCategory);
+// Update a category (protected - admin only)
+router.put(
+  '/:id',
+  protect,
+  restrictTo('admin'),
+  categoryValidators.categoryId,
+  categoryValidators.createCategory,
+  categoryController.updateCategory
+);
 
-// Delete a category
-router.delete('/:id', categoryValidators.categoryId, categoryController.deleteCategory);
+// Delete a category (protected - admin only)
+router.delete(
+  '/:id',
+  protect,
+  restrictTo('admin'),
+  categoryValidators.categoryId,
+  categoryController.deleteCategory
+);
 
 module.exports = router;

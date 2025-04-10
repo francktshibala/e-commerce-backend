@@ -7,9 +7,12 @@ const fs = require('fs');
 const swaggerUi = require('swagger-ui-express');
 const rateLimit = require('express-rate-limit');
 
-// Import routes
+// // Import routes
 const productRoutes = require('./routes/product.routes');
 const categoryRoutes = require('./routes/category.routes');
+const userRoutes = require('./routes/user.routes');
+const orderRoutes = require('./routes/order.routes');
+const authRoutes = require('./routes/auth.routes');
 
 // Import middleware
 const { notFound, errorHandler } = require('./middleware/error.middleware');
