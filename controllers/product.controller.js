@@ -5,6 +5,7 @@ const { ApiError } = require('../middleware/error.middleware');
 /**
  * Create a new product
  * @route POST /api/products
+ * @access Private (Admin only)
  */
 const createProduct = async (req, res, next) => {
   try {
@@ -82,6 +83,7 @@ const createProduct = async (req, res, next) => {
 /**
  * Get all products with filters, pagination, and sorting
  * @route GET /api/products
+ * @access Public
  */
 const getProducts = async (req, res, next) => {
   try {
@@ -181,6 +183,7 @@ const getProducts = async (req, res, next) => {
 /**
  * Get a single product by ID or slug
  * @route GET /api/products/:idOrSlug
+ * @access Public
  */
 const getProduct = async (req, res, next) => {
   try {
@@ -204,9 +207,22 @@ const getProduct = async (req, res, next) => {
       throw new ApiError(404, 'Product not found');
     }
     
+    // Get reviews (optional)
+    const populatedProduct = await product.populate({
+      path: 'reviews',
+      options: { 
+        sort: { createdAt: -1 },
+        limit: 5
+      },
+      populate: {
+        path: 'user',
+        select: 'name'
+      }
+    });
+    
     res.status(200).json({
       success: true,
-      product
+      product: populatedProduct
     });
   } catch (error) {
     next(error);
@@ -216,6 +232,7 @@ const getProduct = async (req, res, next) => {
 /**
  * Update a product
  * @route PUT /api/products/:id
+ * @access Private (Admin only)
  */
 const updateProduct = async (req, res, next) => {
   try {
@@ -291,6 +308,7 @@ const updateProduct = async (req, res, next) => {
 /**
  * Delete a product
  * @route DELETE /api/products/:id
+ * @access Private (Admin only)
  */
 const deleteProduct = async (req, res, next) => {
   try {
@@ -315,10 +333,164 @@ const deleteProduct = async (req, res, next) => {
   }
 };
 
+/**
+ * Get product categories
+ * @route GET /api/products/categories
+ * @access Public
+ */
+const getProductCategories = async (req, res, next) => {
+  try {
+    // Get distinct categories from published products
+    const productCategories = await Product.distinct('categories', {
+      isPublished: true
+    });
+    
+    // Get category details
+    const categories = await Category.find({
+      _id: { $in: productCategories }
+    }).select('name slug image');
+    
+    res.status(200).json({
+      success: true,
+      count: categories.length,
+      categories
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get product brands
+ * @route GET /api/products/brands
+ * @access Public
+ */
+const getProductBrands = async (req, res, next) => {
+  try {
+    // Get distinct brands from published products
+    const brands = await Product.distinct('brand', {
+      isPublished: true,
+      brand: { $ne: null }
+    });
+    
+    res.status(200).json({
+      success: true,
+      count: brands.length,
+      brands
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get related products
+ * @route GET /api/products/:id/related
+ * @access Public
+ */
+const getRelatedProducts = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { limit = 4 } = req.query;
+    
+    // Find product
+    const product = await Product.findById(id);
+    
+    if (!product) {
+      throw new ApiError(404, 'Product not found');
+    }
+    
+    // Find related products based on categories
+    const relatedProducts = await Product.find({
+      _id: { $ne: id },
+      categories: { $in: product.categories },
+      isPublished: true
+    })
+      .limit(Number(limit))
+      .select('name slug price images inventory averageRating');
+    
+    res.status(200).json({
+      success: true,
+      count: relatedProducts.length,
+      products: relatedProducts
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Admin: Get all products (including unpublished)
+ * @route GET /api/products/admin/all
+ * @access Private (Admin only)
+ */
+const getAllProductsAdmin = async (req, res, next) => {
+  try {
+    // Destructure query parameters
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      order = 'desc',
+      search,
+      isPublished
+    } = req.query;
+    
+    // Build filter object
+    const filter = {};
+    
+    // Published filter
+    if (isPublished !== undefined) {
+      filter.isPublished = isPublished === 'true';
+    }
+    
+    // Text search
+    let searchQuery = {};
+    if (search) {
+      searchQuery = { $text: { $search: search } };
+    }
+    
+    // Combine filters
+    const combinedFilter = { ...filter, ...searchQuery };
+    
+    // Calculate pagination
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    // Build sort object
+    const sortOptions = {};
+    sortOptions[sortBy] = order === 'asc' ? 1 : -1;
+    
+    // Execute query with pagination
+    const products = await Product.find(combinedFilter)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(Number(limit))
+      .populate('categories', 'name slug');
+    
+    // Get total count for pagination
+    const totalProducts = await Product.countDocuments(combinedFilter);
+    
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      total: totalProducts,
+      totalPages: Math.ceil(totalProducts / Number(limit)),
+      currentPage: Number(page),
+      products
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createProduct,
   getProducts,
   getProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getProductCategories,
+  getProductBrands,
+  getRelatedProducts,
+  getAllProductsAdmin
 };

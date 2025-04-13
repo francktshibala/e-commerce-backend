@@ -72,6 +72,13 @@ categorySchema.virtual('subcategories', {
   foreignField: 'parent'
 });
 
+// Virtual for products in this category
+categorySchema.virtual('products', {
+  ref: 'Product',
+  localField: '_id',
+  foreignField: 'categories'
+});
+
 // Pre-save middleware to update ancestors and level
 categorySchema.pre('save', async function(next) {
   try {

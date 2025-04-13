@@ -143,6 +143,13 @@ const productSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Virtual for reviews
+productSchema.virtual('reviews', {
+  ref: 'Review',
+  localField: '_id',
+  foreignField: 'product'
+});
+
 // Pre-save hook to calculate available inventory
 productSchema.pre('save', function(next) {
   this.inventory.available = Math.max(0, this.inventory.quantity - this.inventory.reserved);
@@ -156,6 +163,40 @@ productSchema.index({
   brand: 'text', 
   'tags': 'text' 
 });
+
+// Methods
+productSchema.methods.updateRating = async function() {
+  const Review = mongoose.model('Review');
+  
+  const result = await Review.aggregate([
+    { $match: { product: this._id } },
+    { $group: {
+        _id: null,
+        averageRating: { $avg: '$rating' },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+  
+  if (result.length > 0) {
+    this.averageRating = parseFloat(result[0].averageRating.toFixed(1));
+    this.reviewCount = result[0].count;
+  } else {
+    this.averageRating = 0;
+    this.reviewCount = 0;
+  }
+  
+  return this.save();
+};
+
+// Statics
+productSchema.statics.findByCategory = function(categoryId) {
+  return this.find({ categories: categoryId });
+};
+
+productSchema.statics.findInStock = function() {
+  return this.find({ 'inventory.available': { $gt: 0 } });
+};
 
 const Product = mongoose.model('Product', productSchema);
 

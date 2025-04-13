@@ -1,71 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/order.controller');
-const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { authenticateJWT, isAdmin } = require('../middleware/auth.middleware');
 const { orderValidators, commonValidators } = require('../middleware/validation.middleware');
 
-// Get all orders (admin only)
-router.get(
-  '/',
-  protect,
-  restrictTo('admin'),
-  commonValidators.pagination,
-  commonValidators.sorting,
-  commonValidators.dateRange,
-  orderController.getOrders
-);
+// User routes
+router.post('/', authenticateJWT, orderValidators.createOrder, orderController.createOrder);
+router.get('/', authenticateJWT, commonValidators.pagination, orderController.getUserOrders);
+router.get('/:id', authenticateJWT, orderValidators.orderId, orderController.getOrder);
+router.post('/:id/cancel', authenticateJWT, orderValidators.orderId, orderController.cancelOrder);
 
-// Get user's orders (authenticated user)
-router.get(
-  '/my-orders',
-  protect,
-  commonValidators.pagination,
-  commonValidators.sorting,
-  orderController.getUserOrders
-);
-
-// Create a new order (authenticated user)
-router.post(
-  '/',
-  protect,
-  orderValidators.createOrder,
-  orderController.createOrder
-);
-
-// Get a specific order (admin or order owner)
-router.get(
-  '/:id',
-  protect,
-  orderValidators.orderId,
-  orderController.getOrder
-);
-
-// Update an order (admin only)
-router.put(
-  '/:id',
-  protect,
-  restrictTo('admin'),
-  orderValidators.orderId,
-  orderController.updateOrder
-);
-
-// Delete an order (admin only)
-router.delete(
-  '/:id',
-  protect,
-  restrictTo('admin'),
-  orderValidators.orderId,
-  orderController.deleteOrder
-);
-
-// Update order payment status (admin only)
-router.patch(
-  '/:id/payment',
-  protect,
-  restrictTo('admin'),
-  orderValidators.orderId,
-  orderValidators.updatePaymentStatus,
-  orderController.updateOrderPayment
-);
+// Admin routes
+router.get('/admin/all', authenticateJWT, isAdmin, commonValidators.pagination, commonValidators.sorting, orderController.getAllOrders);
+router.get('/admin/stats', authenticateJWT, isAdmin, orderController.getOrderStats);
+router.put('/:id/status', authenticateJWT, isAdmin, orderValidators.orderId, orderController.updateOrderStatus);
+router.put('/:id/payment', authenticateJWT, isAdmin, orderValidators.orderId, orderController.updatePaymentStatus);
 
 module.exports = router;

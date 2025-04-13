@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
+  orderNumber: {
+    type: String,
+    required: true,
+    unique: true
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -18,145 +23,225 @@ const orderSchema = new mongoose.Schema({
     },
     price: {
       type: Number,
-      required: true,
-      min: 0
+      required: true
     },
     quantity: {
       type: Number,
       required: true,
       min: 1
     },
-    variant: {
-      type: String
+    image: String,
+    sku: String,
+    variantInfo: {
+      type: Map,
+      of: String
     }
   }],
-  shippingAddress: {
-    street: {
+  billing: {
+    name: {
       type: String,
       required: true
     },
-    city: {
+    email: {
       type: String,
       required: true
     },
-    state: {
-      type: String,
-      required: true
-    },
-    postalCode: {
-      type: String,
-      required: true
-    },
-    country: {
-      type: String,
-      required: true,
-      default: 'USA'
+    phone: String,
+    address: {
+      street: {
+        type: String,
+        required: true
+      },
+      city: {
+        type: String,
+        required: true
+      },
+      state: {
+        type: String,
+        required: true
+      },
+      zipCode: {
+        type: String,
+        required: true
+      },
+      country: {
+        type: String,
+        required: true
+      }
     }
   },
-  billingAddress: {
-    street: {
+  shipping: {
+    name: {
       type: String,
       required: true
     },
-    city: {
+    address: {
+      street: {
+        type: String,
+        required: true
+      },
+      city: {
+        type: String,
+        required: true
+      },
+      state: {
+        type: String,
+        required: true
+      },
+      zipCode: {
+        type: String,
+        required: true
+      },
+      country: {
+        type: String,
+        required: true
+      }
+    },
+    method: {
       type: String,
       required: true
     },
-    state: {
-      type: String,
-      required: true
+    cost: {
+      type: Number,
+      required: true,
+      default: 0
     },
-    postalCode: {
-      type: String,
-      required: true
-    },
-    country: {
+    trackingNumber: String,
+    estimatedDelivery: Date
+  },
+  payment: {
+    method: {
       type: String,
       required: true,
-      default: 'USA'
-    }
-  },
-  paymentMethod: {
-    type: String,
-    required: true,
-    enum: ['credit_card', 'paypal', 'bank_transfer']
-  },
-  paymentStatus: {
-    type: String,
-    required: true,
-    enum: ['pending', 'processing', 'paid', 'failed', 'refunded'],
-    default: 'pending'
-  },
-  paymentDetails: {
-    type: Map,
-    of: String
-  },
-  shippingMethod: {
-    type: String,
-    required: true,
-    enum: ['standard', 'express', 'overnight']
-  },
-  shippingCost: {
-    type: Number,
-    required: true,
-    min: 0
+      enum: ['credit_card', 'paypal', 'stripe', 'bank_transfer']
+    },
+    transactionId: String,
+    status: {
+      type: String,
+      required: true,
+      enum: ['pending', 'processing', 'completed', 'failed', 'refunded'],
+      default: 'pending'
+    },
+    paidAt: Date
   },
   subtotal: {
     type: Number,
-    required: true,
-    min: 0
+    required: true
   },
   tax: {
     type: Number,
     required: true,
-    min: 0
+    default: 0
   },
-  totalAmount: {
+  discount: {
+    code: String,
+    amount: {
+      type: Number,
+      default: 0
+    }
+  },
+  total: {
     type: Number,
-    required: true,
-    min: 0
+    required: true
   },
   status: {
     type: String,
     required: true,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'],
     default: 'pending'
   },
-  notes: {
-    type: String
-  },
-  trackingNumber: {
-    type: String
-  }
+  notes: String,
+  statusHistory: [{
+    status: {
+      type: String,
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    comment: String,
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  }]
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
 
-// Index for order queries
-orderSchema.index({ user: 1 });
-orderSchema.index({ status: 1 });
-orderSchema.index({ createdAt: -1 });
-
-// Virtual for item count
-orderSchema.virtual('itemCount').get(function() {
-  return this.items.reduce((total, item) => total + item.quantity, 0);
-});
-
-// Pre-save middleware to calculate order totals
-orderSchema.pre('save', function(next) {
-  if (this.isModified('items') || this.isNew) {
-    // Calculate subtotal from items
-    this.subtotal = this.items.reduce((sum, item) => {
-      return sum + (item.price * item.quantity);
-    }, 0);
-    
-    // Calculate total with shipping and tax
-    this.totalAmount = this.subtotal + this.shippingCost + this.tax;
+// Update inventory after order is placed
+orderSchema.post('save', async function() {
+  try {
+    if (this.status === 'pending' || this.status === 'processing') {
+      const Product = mongoose.model('Product');
+      
+      // Update inventory for each product
+      for (const item of this.items) {
+        await Product.findByIdAndUpdate(
+          item.product,
+          {
+            $inc: {
+              'inventory.reserved': item.quantity
+            }
+          }
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Error updating inventory:', error);
   }
-  next();
 });
+
+// Methods
+orderSchema.methods.updateStatus = async function(status, comment, userId) {
+  this.status = status;
+  this.statusHistory.push({
+    status,
+    timestamp: new Date(),
+    comment,
+    updatedBy: userId
+  });
+  
+  return this.save();
+};
+
+orderSchema.methods.cancel = async function(reason, userId) {
+  if (this.status !== 'pending' && this.status !== 'processing') {
+    throw new Error('Only pending or processing orders can be cancelled');
+  }
+  
+  // Update status
+  this.status = 'cancelled';
+  this.statusHistory.push({
+    status: 'cancelled',
+    timestamp: new Date(),
+    comment: reason || 'Order cancelled',
+    updatedBy: userId
+  });
+  
+  // Release reserved inventory
+  const Product = mongoose.model('Product');
+  for (const item of this.items) {
+    await Product.findByIdAndUpdate(
+      item.product,
+      {
+        $inc: {
+          'inventory.reserved': -item.quantity
+        }
+      }
+    );
+  }
+  
+  return this.save();
+};
+
+// Create indexes
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ user: 1 });
+orderSchema.index({ 'payment.status': 1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ createdAt: 1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

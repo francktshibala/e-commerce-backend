@@ -1,6 +1,97 @@
-const jwt = require('jsonwebtoken');
-const { ApiError } = require('./error.middleware');
-const User = require('../models/user.model');
+const passport = require('passport');
+const { verifyToken } = require('../config/jwt.config');
+
+/**
+ * Middleware to authenticate JWT token and attach user to request
+ */
+const authenticateJWT = (req, res, next) => {
+  passport.authenticate('jwt', { session: false }, (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized: Invalid or expired token'
+      });
+    }
+    
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is deactivated'
+      });
+    }
+    
+    // Update last login time
+    user.lastLogin = new Date();
+    user.save().catch((err) => console.error('Error updating last login:', err));
+    
+    // Attach user to request
+    req.user = user;
+    next();
+  })(req, res, next);
+};
+
+/**
+ * Middleware to check if user is an admin
+ */
+const isAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized: No authentication provided'
+    });
+  }
+  
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Forbidden: Admin access required'
+    });
+  }
+  
+  next();
+};
+
+/**
+ * Middleware to check if user is owner of the resource or admin
+ * @param {Function} getOwnerId - Function to extract owner ID from request
+ */
+const isOwnerOrAdmin = (getOwnerId) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: No authentication provided'
+        });
+      }
+      
+      // Admin can access any resource
+      if (req.user.role === 'admin') {
+        return next();
+      }
+      
+      // Get owner ID from request using callback
+      const ownerId = await getOwnerId(req);
+      
+      // Check if user is the owner
+      if (ownerId && ownerId.toString() === req.user._id.toString()) {
+        return next();
+      }
+      
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: You do not have permission to access this resource'
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+};
 
 /**
  * Parse authorization header if present
@@ -12,136 +103,34 @@ const parseAuthToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      // Extract token
       const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
       
-      // Verify token
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || 'your-default-jwt-secret'
-      );
-      
-      // Add user info to request
-      req.user = {
-        id: decoded.id,
-        role: decoded.role
-      };
-    }
-    
-    // Continue regardless of token presence
-    next();
-  } catch (error) {
-    // Continue without error even if token is invalid
-    next();
-  }
-};
-
-/**
- * Protect routes - require valid authentication
- */
-const protect = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new ApiError(401, 'Not authorized, no token provided');
-    }
-    
-    try {
-      // Extract token
-      const token = authHeader.split(' ')[1];
-      
-      // Verify token
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || 'your-default-jwt-secret'
-      );
-      
-      // Find user
-      const user = await User.findById(decoded.id).select('-password');
-      
-      if (!user) {
-        throw new ApiError(401, 'User not found');
-      }
-      
-      if (!user.isActive) {
-        throw new ApiError(401, 'User account is deactivated');
-      }
-      
-      // Add user info to request
-      req.user = {
-        id: user._id.toString(),
-        email: user.email,
-        role: user.role
-      };
-      
-      next();
-    } catch (error) {
-      if (error.name === 'JsonWebTokenError') {
-        throw new ApiError(401, 'Invalid token');
-      } else if (error.name === 'TokenExpiredError') {
-        throw new ApiError(401, 'Token expired');
+      if (decoded) {
+        // Find user without throwing error if not found
+        passport.authenticate('jwt', { session: false }, (err, user) => {
+          if (user && user.isActive) {
+            req.user = user;
+          }
+          next();
+        })(req, res, next);
       } else {
-        throw error;
+        // Invalid token, but we continue without error
+        next();
       }
+    } else {
+      // No token provided, continue
+      next();
     }
   } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Restrict access to specific roles
- */
-const restrictTo = (...roles) => {
-  return (req, res, next) => {
-    // TEMPORARY FIX: Allow all authenticated users to create categories and products
-    // Check if the request is for creating a category or product
-    if (req.method === 'POST' && 
-        (req.originalUrl.includes('/api/categories') || 
-         req.originalUrl.includes('/api/products'))) {
-      return next();
-    }
-
-    // Original role check
-    if (!roles.includes(req.user.role)) {
-      return next(
-        new ApiError(403, 'You do not have permission to perform this action')
-      );
-    }
+    // Error parsing token, continue without error
     next();
-  };
-};
-
-/**
- * Check if user is the owner or an admin
- */
-const isOwnerOrAdmin = (paramIdField) => {
-  return (req, res, next) => {
-    const resourceId = req.params[paramIdField];
-    const userId = req.user.id;
-    const userRole = req.user.role;
-    
-    // Admin can access any resource
-    if (userRole === 'admin') {
-      return next();
-    }
-    
-    // For user resources, check if user is the owner
-    if (resourceId === userId) {
-      return next();
-    }
-    
-    // If neither admin nor owner, deny access
-    return next(
-      new ApiError(403, 'You do not have permission to access this resource')
-    );
-  };
+  }
 };
 
 module.exports = {
-  parseAuthToken,
-  protect,
-  restrictTo,
-  isOwnerOrAdmin
+  authenticateJWT,
+  isAdmin,
+  isOwnerOrAdmin,
+  parseAuthToken
 };

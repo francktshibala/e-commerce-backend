@@ -1,31 +1,43 @@
 const User = require('../models/user.model');
+const Order = require('../models/order.model');
+const Review = require('../models/review.model');
 const { ApiError } = require('../middleware/error.middleware');
 
 /**
- * Get all users
+ * Admin: Get all users
  * @route GET /api/users
- * @access Admin only
+ * @access Private (Admin only)
  */
-const getUsers = async (req, res, next) => {
+const getAllUsers = async (req, res, next) => {
   try {
-    // Extract query parameters
     const {
       page = 1,
       limit = 10,
       sortBy = 'createdAt',
       order = 'desc',
-      search
+      search,
+      role,
+      active
     } = req.query;
     
     // Build filter object
     const filter = {};
     
-    // Text search
+    // Filter by role
+    if (role) {
+      filter.role = role;
+    }
+    
+    // Filter by active status
+    if (active !== undefined) {
+      filter.isActive = active === 'true';
+    }
+    
+    // Search by name or email
     if (search) {
       filter.$or = [
-        { email: { $regex: search, $options: 'i' } },
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } }
+        { name: new RegExp(search, 'i') },
+        { email: new RegExp(search, 'i') }
       ];
     }
     
@@ -36,12 +48,12 @@ const getUsers = async (req, res, next) => {
     const sortOptions = {};
     sortOptions[sortBy] = order === 'asc' ? 1 : -1;
     
-    // Execute query with pagination
+    // Get users
     const users = await User.find(filter)
       .sort(sortOptions)
       .skip(skip)
       .limit(Number(limit))
-      .select('-password');
+      .select('-password -cart');
     
     // Get total count for pagination
     const totalUsers = await User.countDocuments(filter);
@@ -60,9 +72,9 @@ const getUsers = async (req, res, next) => {
 };
 
 /**
- * Get user by ID
+ * Admin: Get a single user
  * @route GET /api/users/:id
- * @access Admin or Own User
+ * @access Private (Admin only)
  */
 const getUser = async (req, res, next) => {
   try {
@@ -75,9 +87,24 @@ const getUser = async (req, res, next) => {
       throw new ApiError(404, 'User not found');
     }
     
+    // Get user statistics
+    const orderCount = await Order.countDocuments({ user: id });
+    const reviewCount = await Review.countDocuments({ user: id });
+    
+    // Get latest orders
+    const latestOrders = await Order.find({ user: id })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('orderNumber createdAt total status');
+    
     res.status(200).json({
       success: true,
-      user
+      user,
+      stats: {
+        orderCount,
+        reviewCount
+      },
+      latestOrders
     });
   } catch (error) {
     next(error);
@@ -85,65 +112,14 @@ const getUser = async (req, res, next) => {
 };
 
 /**
- * Create new user
- * @route POST /api/users
- * @access Admin only
- */
-const createUser = async (req, res, next) => {
-  try {
-    const {
-      email,
-      firstName,
-      lastName,
-      password,
-      role,
-      addresses,
-      phone,
-      isActive
-    } = req.body;
-    
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      throw new ApiError(400, 'User with this email already exists');
-    }
-    
-    // Create user
-    const user = new User({
-      email,
-      firstName,
-      lastName,
-      password,
-      role: role || 'customer',
-      addresses: addresses || [],
-      phone,
-      isActive: isActive !== undefined ? isActive : true
-    });
-    
-    await user.save();
-    
-    // Don't return password in response
-    user.password = undefined;
-    
-    res.status(201).json({
-      success: true,
-      message: 'User created successfully',
-      user
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Update user
+ * Admin: Update a user
  * @route PUT /api/users/:id
- * @access Admin or Own User
+ * @access Private (Admin only)
  */
 const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const { name, email, role, isActive } = req.body;
     
     // Find user
     const user = await User.findById(id);
@@ -152,30 +128,27 @@ const updateUser = async (req, res, next) => {
       throw new ApiError(404, 'User not found');
     }
     
-    // Check for email uniqueness if changing email
-    if (updates.email && updates.email !== user.email) {
-      const existingUser = await User.findOne({ email: updates.email });
-      if (existingUser) {
-        throw new ApiError(400, 'Email is already in use');
-      }
+    // Prevent changing own role (admin can't demote themselves)
+    if (id === req.user._id.toString() && role && role !== user.role) {
+      throw new ApiError(400, 'You cannot change your own role');
     }
     
-    // Don't allow direct role changes for security (separate endpoint for admin)
-    if (updates.role && req.user.role !== 'admin') {
-      delete updates.role;
-    }
+    // Update user fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (role) user.role = role;
+    if (isActive !== undefined) user.isActive = isActive;
     
-    // Update user
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { $set: updates },
-      { new: true, runValidators: true }
-    ).select('-password');
+    await user.save();
+    
+    // Remove sensitive data
+    const userData = user.toObject();
+    delete userData.password;
     
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
-      user: updatedUser
+      user: userData
     });
   } catch (error) {
     next(error);
@@ -183,20 +156,42 @@ const updateUser = async (req, res, next) => {
 };
 
 /**
- * Delete user
+ * Admin: Delete a user
  * @route DELETE /api/users/:id
- * @access Admin or Own User
+ * @access Private (Admin only)
  */
 const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     
+    // Prevent deleting own account
+    if (id === req.user._id.toString()) {
+      throw new ApiError(400, 'You cannot delete your own account');
+    }
+    
     // Find user
     const user = await User.findById(id);
     
     if (!user) {
       throw new ApiError(404, 'User not found');
     }
+    
+    // Check if user has orders
+    const hasOrders = await Order.exists({ user: id });
+    
+    if (hasOrders) {
+      // Instead of deleting, just deactivate the account
+      user.isActive = false;
+      await user.save();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'User has orders. Account has been deactivated instead of deleted.'
+      });
+    }
+    
+    // Delete user's reviews
+    await Review.deleteMany({ user: id });
     
     // Delete user
     await user.remove();
@@ -211,110 +206,53 @@ const deleteUser = async (req, res, next) => {
 };
 
 /**
- * Get current user profile
- * @route GET /api/users/profile
- * @access Private
+ * Admin: Get user orders
+ * @route GET /api/users/:id/orders
+ * @access Private (Admin only)
  */
-const getUserProfile = async (req, res, next) => {
-  try {
-    // User is already available from auth middleware
-    const user = await User.findById(req.user.id).select('-password');
-    
-    if (!user) {
-      throw new ApiError(404, 'User not found');
-    }
-    
-    res.status(200).json({
-      success: true,
-      user
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Update current user profile
- * @route PUT /api/users/profile
- * @access Private
- */
-const updateUserProfile = async (req, res, next) => {
-  try {
-    const updates = req.body;
-    
-    // Don't allow role changes from this endpoint
-    if (updates.role) {
-      delete updates.role;
-    }
-    
-    // Check for email uniqueness if changing email
-    if (updates.email) {
-      const existingUser = await User.findOne({
-        email: updates.email,
-        _id: { $ne: req.user.id }
-      });
-      
-      if (existingUser) {
-        throw new ApiError(400, 'Email is already in use');
-      }
-    }
-    
-    // Update user
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: updates },
-      { new: true, runValidators: true }
-    ).select('-password');
-    
-    res.status(200).json({
-      success: true,
-      message: 'Profile updated successfully',
-      user
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Add address to user
- * @route POST /api/users/:id/addresses
- * @access Private
- */
-const addUserAddress = async (req, res, next) => {
+const getUserOrders = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const addressData = req.body;
+    const {
+      page = 1,
+      limit = 10,
+      status
+    } = req.query;
     
-    // Find user
+    // Check if user exists
     const user = await User.findById(id);
     
     if (!user) {
       throw new ApiError(404, 'User not found');
     }
     
-    // If this is the first address or setting as default
-    if (user.addresses.length === 0 || addressData.isDefault) {
-      // Set all existing addresses of the same type to non-default
-      if (addressData.isDefault) {
-        user.addresses.forEach(address => {
-          if (address.type === addressData.type) {
-            address.isDefault = false;
-          }
-        });
-      }
-      // First address is automatically default
-      addressData.isDefault = true;
+    // Build filter object
+    const filter = { user: id };
+    
+    // Filter by status if provided
+    if (status) {
+      filter.status = status;
     }
     
-    // Add address to user
-    user.addresses.push(addressData);
-    await user.save();
+    // Calculate pagination
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    // Get orders
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+    
+    // Get total count for pagination
+    const totalOrders = await Order.countDocuments(filter);
     
     res.status(200).json({
       success: true,
-      message: 'Address added successfully',
-      addresses: user.addresses
+      count: orders.length,
+      total: totalOrders,
+      totalPages: Math.ceil(totalOrders / Number(limit)),
+      currentPage: Number(page),
+      orders
     });
   } catch (error) {
     next(error);
@@ -322,54 +260,81 @@ const addUserAddress = async (req, res, next) => {
 };
 
 /**
- * Remove address from user
- * @route DELETE /api/users/:userId/addresses/:addressId
- * @access Private
+ * Admin: Get customer statistics
+ * @route GET /api/users/stats
+ * @access Private (Admin only)
  */
-const removeUserAddress = async (req, res, next) => {
+const getUserStats = async (req, res, next) => {
   try {
-    const { userId, addressId } = req.params;
+    // Get total users count
+    const totalUsers = await User.countDocuments();
     
-    // Find user
-    const user = await User.findById(userId);
+    // Get new users in last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    if (!user) {
-      throw new ApiError(404, 'User not found');
-    }
+    const newUsers = await User.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo }
+    });
     
-    // Find address index
-    const addressIndex = user.addresses.findIndex(
-      address => address._id.toString() === addressId
-    );
-    
-    if (addressIndex === -1) {
-      throw new ApiError(404, 'Address not found');
-    }
-    
-    // Check if we're removing a default address
-    const removedAddress = user.addresses[addressIndex];
-    
-    // Remove address
-    user.addresses.splice(addressIndex, 1);
-    
-    // If we removed a default address and we have other addresses of the same type,
-    // set the first one as default
-    if (removedAddress.isDefault && user.addresses.length > 0) {
-      const sameTypeAddress = user.addresses.find(
-        address => address.type === removedAddress.type
-      );
-      
-      if (sameTypeAddress) {
-        sameTypeAddress.isDefault = true;
+    // Get user role distribution
+    const roleDistribution = await User.aggregate([
+      { $group: {
+          _id: '$role',
+          count: { $sum: 1 }
+        }
       }
-    }
+    ]);
     
-    await user.save();
+    // Format role distribution
+    const formattedRoleDistribution = {};
+    roleDistribution.forEach(item => {
+      formattedRoleDistribution[item._id] = item.count;
+    });
+    
+    // Get active vs inactive users
+    const activeUsers = await User.countDocuments({ isActive: true });
+    const inactiveUsers = totalUsers - activeUsers;
+    
+    // Get top customers by order value
+    const topCustomers = await Order.aggregate([
+      { $match: { status: { $nin: ['cancelled', 'refunded'] } } },
+      { $group: {
+          _id: '$user',
+          totalSpent: { $sum: '$total' },
+          orderCount: { $sum: 1 }
+        }
+      },
+      { $sort: { totalSpent: -1 } },
+      { $limit: 5 },
+      { $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'userDetails'
+        }
+      },
+      { $unwind: '$userDetails' },
+      { $project: {
+          _id: 1,
+          totalSpent: 1,
+          orderCount: 1,
+          name: '$userDetails.name',
+          email: '$userDetails.email'
+        }
+      }
+    ]);
     
     res.status(200).json({
       success: true,
-      message: 'Address removed successfully',
-      addresses: user.addresses
+      stats: {
+        totalUsers,
+        newUsers,
+        activeUsers,
+        inactiveUsers,
+        roleDistribution: formattedRoleDistribution,
+        topCustomers
+      }
     });
   } catch (error) {
     next(error);
@@ -377,13 +342,10 @@ const removeUserAddress = async (req, res, next) => {
 };
 
 module.exports = {
-  getUsers,
+  getAllUsers,
   getUser,
-  createUser,
   updateUser,
   deleteUser,
-  getUserProfile,
-  updateUserProfile,
-  addUserAddress,
-  removeUserAddress
+  getUserOrders,
+  getUserStats
 };

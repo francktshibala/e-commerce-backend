@@ -1,44 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const passport = require('passport');
 const authController = require('../controllers/auth.controller');
+const { authenticateJWT } = require('../middleware/auth.middleware');
 const { userValidators } = require('../middleware/validation.middleware');
-const { protect } = require('../middleware/auth.middleware');
 
-// Initialize passport
-require('../config/passport.config');
+// Public routes
+router.post('/register', userValidators.register, authController.register);
+router.post('/login', userValidators.login, authController.login);
+router.get('/google', authController.googleAuth);
+router.get('/google/callback', authController.googleCallback);
 
-// Login user
-router.post(
-  '/login',
-  userValidators.login,
-  authController.login
-);
+// Protected routes
+router.get('/me', authenticateJWT, authController.getProfile);
+router.put('/me', authenticateJWT, authController.updateProfile);
+router.post('/change-password', authenticateJWT, authController.changePassword);
 
-// Register new user
-router.post(
-  '/register',
-  userValidators.register,
-  authController.register
-);
-
-// Get current user profile
-router.get(
-  '/me',
-  protect,
-  authController.getCurrentUser
-);
-
-// Google OAuth routes
-router.get(
-  '/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
-
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: '/login' }),
-  authController.googleCallback
-);
+// Address management
+router.post('/addresses', authenticateJWT, userValidators.address, authController.addAddress);
+router.put('/addresses/:addressId', authenticateJWT, userValidators.address, authController.updateAddress);
+router.delete('/addresses/:addressId', authenticateJWT, authController.deleteAddress);
 
 module.exports = router;

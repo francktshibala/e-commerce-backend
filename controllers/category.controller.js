@@ -5,6 +5,7 @@ const { ApiError } = require('../middleware/error.middleware');
 /**
  * Create a new category
  * @route POST /api/categories
+ * @access Private (Admin only)
  */
 const createCategory = async (req, res, next) => {
   try {
@@ -52,6 +53,7 @@ const createCategory = async (req, res, next) => {
 /**
  * Get all categories
  * @route GET /api/categories
+ * @access Public
  */
 const getCategories = async (req, res, next) => {
   try {
@@ -131,6 +133,7 @@ const getCategories = async (req, res, next) => {
 /**
  * Get a single category by ID or slug
  * @route GET /api/categories/:idOrSlug
+ * @access Public
  */
 const getCategory = async (req, res, next) => {
   try {
@@ -174,6 +177,7 @@ const getCategory = async (req, res, next) => {
 /**
  * Update a category
  * @route PUT /api/categories/:id
+ * @access Private (Admin only)
  */
 const updateCategory = async (req, res, next) => {
   try {
@@ -244,6 +248,7 @@ const updateCategory = async (req, res, next) => {
 /**
  * Delete a category
  * @route DELETE /api/categories/:id
+ * @access Private (Admin only)
  */
 const deleteCategory = async (req, res, next) => {
   try {
@@ -285,6 +290,7 @@ const deleteCategory = async (req, res, next) => {
 /**
  * Get products by category
  * @route GET /api/categories/:idOrSlug/products
+ * @access Public
  */
 const getCategoryProducts = async (req, res, next) => {
   try {
