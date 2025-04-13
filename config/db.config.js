@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const connectDB = async () => {
   try {
     // Removed deprecated options useNewUrlParser and useUnifiedTopology
-    // as they're no longer needed in MongoDB Driver 4.0.0+ and Mongoose 6.0+
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommercedb');
     
     console.log(`MongoDB Connected: ${conn.connection.host}`);
