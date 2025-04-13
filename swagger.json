@@ -3,235 +3,571 @@
   "info": {
     "title": "E-commerce Backend API",
     "description": "API documentation for the e-commerce backend with OAuth 2.0 authentication",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "contact": {
+      "name": "Franck Tshibala",
+      "email": "support@example.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
   },
   "servers": [
     {
+      "url": "https://e-commerce-backend-api.onrender.com/api",
+      "description": "Production server"
+    },
+    {
       "url": "http://localhost:5000/api",
-      "description": "Local server"
+      "description": "Development server"
     }
   ],
   "tags": [
     {
-      "name": "Authentication",
+      "name": "auth",
       "description": "Authentication operations"
     },
     {
-      "name": "Products",
-      "description": "Product management"
+      "name": "users",
+      "description": "User operations"
     },
     {
-      "name": "Categories",
-      "description": "Category management"
+      "name": "products",
+      "description": "Product operations"
     },
     {
-      "name": "Orders",
-      "description": "Order management"
+      "name": "categories",
+      "description": "Category operations"
     },
     {
-      "name": "Reviews",
-      "description": "Product review management"
+      "name": "orders",
+      "description": "Order operations"
     },
     {
-      "name": "Users",
-      "description": "User management (Admin only)"
+      "name": "cart",
+      "description": "Shopping cart operations"
+    },
+    {
+      "name": "reviews",
+      "description": "Product review operations"
     }
   ],
   "components": {
-    "schemas": {
-      "User": {
-        "type": "object",
-        "properties": {
-          "_id": { "type": "string", "description": "User ID" },
-          "name": { "type": "string", "description": "User's full name" },
-          "email": { "type": "string", "description": "User's email address" },
-          "role": { "type": "string", "enum": ["customer", "admin"], "description": "User role" },
-          "method": { "type": "string", "enum": ["local", "google"], "description": "Authentication method" },
-          "isActive": { "type": "boolean", "description": "Whether user account is active" },
-          "addresses": { "type": "array", "items": { "$ref": "#/components/schemas/Address" } },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Address": {
-        "type": "object",
-        "properties": {
-          "_id": { "type": "string" },
-          "name": { "type": "string" },
-          "street": { "type": "string" },
-          "city": { "type": "string" },
-          "state": { "type": "string" },
-          "zipCode": { "type": "string" },
-          "country": { "type": "string" },
-          "isDefault": { "type": "boolean" }
-        }
-      },
-      "Product": {
-        "type": "object",
-        "properties": {
-          "_id": { "type": "string" },
-          "name": { "type": "string" },
-          "slug": { "type": "string" },
-          "description": { "type": "string" },
-          "price": { "type": "number" },
-          "sku": { "type": "string" },
-          "inventory": {
-            "type": "object",
-            "properties": {
-              "quantity": { "type": "integer" },
-              "reserved": { "type": "integer" },
-              "available": { "type": "integer" }
-            }
-          },
-          "categories": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "images": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "url": { "type": "string" },
-                "alt": { "type": "string" },
-                "isMain": { "type": "boolean" }
-              }
-            }
-          },
-          "isPublished": { "type": "boolean" },
-          "isFeatured": { "type": "boolean" },
-          "averageRating": { "type": "number" },
-          "reviewCount": { "type": "integer" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Category": {
-        "type": "object",
-        "properties": {
-          "_id": { "type": "string" },
-          "name": { "type": "string" },
-          "slug": { "type": "string" },
-          "description": { "type": "string" },
-          "parent": { "type": "string" },
-          "level": { "type": "integer" },
-          "order": { "type": "integer" },
-          "isActive": { "type": "boolean" },
-          "image": {
-            "type": "object",
-            "properties": {
-              "url": { "type": "string" },
-              "alt": { "type": "string" }
-            }
-          },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Order": {
-        "type": "object",
-        "properties": {
-          "_id": { "type": "string" },
-          "orderNumber": { "type": "string" },
-          "user": { "type": "string" },
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "product": { "type": "string" },
-                "name": { "type": "string" },
-                "price": { "type": "number" },
-                "quantity": { "type": "integer" },
-                "image": { "type": "string" },
-                "sku": { "type": "string" }
-              }
-            }
-          },
-          "subtotal": { "type": "number" },
-          "tax": { "type": "number" },
-          "total": { "type": "number" },
-          "status": { 
-            "type": "string", 
-            "enum": ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]
-          },
-          "payment": {
-            "type": "object",
-            "properties": {
-              "method": { "type": "string" },
-              "status": { "type": "string" }
-            }
-          },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Review": {
-        "type": "object",
-        "properties": {
-          "_id": { "type": "string" },
-          "user": { "type": "string" },
-          "product": { "type": "string" },
-          "rating": { "type": "number" },
-          "title": { "type": "string" },
-          "comment": { "type": "string" },
-          "isVerifiedPurchase": { "type": "boolean" },
-          "isApproved": { "type": "boolean" },
-          "likes": {
-            "type": "object",
-            "properties": {
-              "count": { "type": "integer" },
-              "users": { "type": "array", "items": { "type": "string" } }
-            }
-          },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
-        }
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean", "example": false },
-          "message": { "type": "string" },
-          "errors": { 
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "field": { "type": "string" },
-                "message": { "type": "string" }
-              }
-            }
-          }
-        }
-      }
-    },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "tokenUrl": "/api/auth/token",
+            "scopes": {
+              "read": "Read access",
+              "write": "Write access",
+              "admin": "Admin access"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "User ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "User's full name"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User's email address"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "description": "User's password (hashed)",
+            "writeOnly": true
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "admin"],
+            "default": "user",
+            "description": "User's role"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the user was created"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the user was last updated"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Product ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Product description"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Product price"
+          },
+          "category": {
+            "type": "string",
+            "description": "Product category ID"
+          },
+          "stock": {
+            "type": "integer",
+            "description": "Product stock quantity"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "URL to product image"
+            }
+          },
+          "featured": {
+            "type": "boolean",
+            "default": false,
+            "description": "Is product featured"
+          },
+          "rating": {
+            "type": "number",
+            "format": "float",
+            "default": 0,
+            "description": "Product average rating"
+          },
+          "numReviews": {
+            "type": "integer",
+            "default": 0,
+            "description": "Number of product reviews"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the product was created"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the product was last updated"
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Category ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Category name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Category description"
+          },
+          "image": {
+            "type": "string",
+            "description": "Category image URL"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the category was created"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the category was last updated"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Order ID"
+          },
+          "user": {
+            "type": "string",
+            "description": "User ID who placed the order"
+          },
+          "orderItems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "product": {
+                  "type": "string",
+                  "description": "Product ID"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Product name"
+                },
+                "image": {
+                  "type": "string",
+                  "description": "Product image URL"
+                },
+                "price": {
+                  "type": "number",
+                  "format": "float",
+                  "description": "Product price"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "description": "Product quantity"
+                }
+              }
+            }
+          },
+          "shippingAddress": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "postalCode": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              }
+            }
+          },
+          "paymentMethod": {
+            "type": "string",
+            "description": "Payment method"
+          },
+          "paymentResult": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "update_time": {
+                "type": "string"
+              },
+              "email_address": {
+                "type": "string"
+              }
+            }
+          },
+          "taxPrice": {
+            "type": "number",
+            "format": "float",
+            "description": "Tax price"
+          },
+          "shippingPrice": {
+            "type": "number",
+            "format": "float",
+            "description": "Shipping price"
+          },
+          "totalPrice": {
+            "type": "number",
+            "format": "float",
+            "description": "Total price"
+          },
+          "isPaid": {
+            "type": "boolean",
+            "default": false,
+            "description": "Payment status"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Payment date"
+          },
+          "isDelivered": {
+            "type": "boolean",
+            "default": false,
+            "description": "Delivery status"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Delivery date"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "shipped", "delivered", "cancelled"],
+            "default": "pending",
+            "description": "Order status"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the order was created"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the order was last updated"
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Review ID"
+          },
+          "user": {
+            "type": "string",
+            "description": "User ID who wrote the review"
+          },
+          "product": {
+            "type": "string",
+            "description": "Product ID being reviewed"
+          },
+          "name": {
+            "type": "string",
+            "description": "User's name"
+          },
+          "rating": {
+            "type": "number",
+            "format": "float",
+            "description": "Review rating (1-5)"
+          },
+          "comment": {
+            "type": "string",
+            "description": "Review comment"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the review was created"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the review was last updated"
+          }
+        }
+      },
+      "CartItem": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "Product ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name"
+          },
+          "image": {
+            "type": "string",
+            "description": "Product image URL"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Product price"
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Product quantity"
+          }
+        }
+      },
+      "Cart": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Cart ID"
+          },
+          "user": {
+            "type": "string",
+            "description": "User ID who owns the cart"
+          },
+          "cartItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItem"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the cart was created"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when the cart was last updated"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      },
+      "LoginInput": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "RegisterInput": {
+        "type": "object",
+        "required": ["name", "email", "password"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Authentication information is missing or invalid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "message": "Unauthorized access"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "The specified resource was not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "message": "Resource not found"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "message": "Validation failed"
+            }
+          }
+        }
       }
     }
   },
   "paths": {
     "/auth/register": {
       "post": {
+        "tags": ["auth"],
         "summary": "Register a new user",
-        "tags": ["Authentication"],
+        "description": "Create a new user account",
+        "operationId": "registerUser",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["name", "email", "password", "method"],
-                "properties": {
-                  "name": { "type": "string" },
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "format": "password" },
-                  "method": { "type": "string", "enum": ["local"] }
-                }
+                "$ref": "#/components/schemas/RegisterInput"
               }
             }
           }
@@ -242,43 +578,29 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "token": { "type": "string" },
-                    "user": { "$ref": "#/components/schemas/User" }
-                  }
+                  "$ref": "#/components/schemas/AuthResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/ValidationError"
           }
         }
       }
     },
     "/auth/login": {
       "post": {
-        "summary": "Login with email and password",
-        "tags": ["Authentication"],
+        "tags": ["auth"],
+        "summary": "Login a user",
+        "description": "Authenticate a user and get a token",
+        "operationId": "loginUser",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["email", "password"],
-                "properties": {
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "format": "password" }
-                }
+                "$ref": "#/components/schemas/LoginInput"
               }
             }
           }
@@ -289,73 +611,54 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "token": { "type": "string" },
-                    "user": { "$ref": "#/components/schemas/User" }
-                  }
+                  "$ref": "#/components/schemas/AuthResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/UnauthorizedError"
           }
         }
       }
     },
-    "/auth/google": {
+    "/auth/profile": {
       "get": {
-        "summary": "Initiate Google OAuth login",
-        "tags": ["Authentication"],
-        "responses": {
-          "302": {
-            "description": "Redirect to Google authentication"
+        "tags": ["auth"],
+        "summary": "Get user profile",
+        "description": "Get the currently authenticated user's profile",
+        "operationId": "getUserProfile",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        }
-      }
-    },
-    "/auth/me": {
-      "get": {
-        "summary": "Get current user profile",
-        "tags": ["Authentication"],
-        "security": [{ "bearerAuth": [] }],
+        ],
         "responses": {
           "200": {
-            "description": "User profile retrieved",
+            "description": "User profile retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "user": { "$ref": "#/components/schemas/User" }
-                  }
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/UnauthorizedError"
           }
         }
       },
       "put": {
+        "tags": ["auth"],
         "summary": "Update user profile",
-        "tags": ["Authentication"],
-        "security": [{ "bearerAuth": [] }],
+        "description": "Update the currently authenticated user's profile",
+        "operationId": "updateUserProfile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -363,8 +666,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": { "type": "string" },
-                  "phone": { "type": "string" }
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  }
                 }
               }
             }
@@ -372,81 +684,98 @@
         },
         "responses": {
           "200": {
-            "description": "Profile updated successfully",
+            "description": "User profile updated successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "user": { "$ref": "#/components/schemas/User" }
-                  }
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/UnauthorizedError"
           }
         }
       }
     },
     "/products": {
       "get": {
+        "tags": ["products"],
         "summary": "Get all products",
-        "tags": ["Products"],
+        "description": "Retrieve all products with optional filtering and pagination",
+        "operationId": "getProducts",
         "parameters": [
           {
+            "name": "keyword",
             "in": "query",
-            "name": "page",
-            "schema": { "type": "integer", "default": 1 }
+            "description": "Keyword to search for",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           },
           {
-            "in": "query",
-            "name": "limit",
-            "schema": { "type": "integer", "default": 10 }
-          },
-          {
-            "in": "query",
-            "name": "sortBy",
-            "schema": { "type": "string", "default": "createdAt" }
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" }
-          },
-          {
-            "in": "query",
             "name": "category",
-            "schema": { "type": "string" }
+            "in": "query",
+            "description": "Category ID to filter by",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           },
           {
+            "name": "page",
             "in": "query",
-            "name": "search",
-            "schema": { "type": "string" }
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of products per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort field and direction (e.g., price:asc)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of products",
+            "description": "Products retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "total": { "type": "integer" },
                     "products": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/Product" }
+                      "items": {
+                        "$ref": "#/components/schemas/Product"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
                     }
                   }
                 }
@@ -456,33 +785,49 @@
         }
       },
       "post": {
+        "tags": ["products"],
         "summary": "Create a new product",
-        "tags": ["Products"],
-        "security": [{ "bearerAuth": [] }],
+        "description": "Create a new product (admin only)",
+        "operationId": "createProduct",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["name", "price", "description", "category", "stock"],
                 "properties": {
-                  "name": { "type": "string" },
-                  "description": { "type": "string" },
-                  "price": { "type": "number" },
-                  "sku": { "type": "string" },
-                  "inventory": {
-                    "type": "object",
-                    "properties": {
-                      "quantity": { "type": "integer" },
-                      "reserved": { "type": "integer", "default": 0 }
+                  "name": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number",
+                    "format": "float"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "stock": {
+                    "type": "integer"
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
                     }
                   },
-                  "categories": {
-                    "type": "array",
-                    "items": { "type": "string" }
+                  "featured": {
+                    "type": "boolean"
                   }
-                },
-                "required": ["name", "description", "price", "sku", "inventory", "categories"]
+                }
               }
             }
           }
@@ -493,74 +838,72 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "product": { "$ref": "#/components/schemas/Product" }
-                  }
+                  "$ref": "#/components/schemas/Product"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           }
         }
       }
     },
     "/products/{id}": {
       "get": {
-        "summary": "Get a product by ID",
-        "tags": ["Products"],
+        "tags": ["products"],
+        "summary": "Get a single product",
+        "description": "Retrieve a product by its ID",
+        "operationId": "getProductById",
         "parameters": [
           {
-            "in": "path",
             "name": "id",
+            "in": "path",
+            "description": "Product ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Product found",
+            "description": "Product retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "product": { "$ref": "#/components/schemas/Product" }
-                  }
+                  "$ref": "#/components/schemas/Product"
                 }
               }
             }
           },
           "404": {
-            "description": "Product not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
       },
       "put": {
+        "tags": ["products"],
         "summary": "Update a product",
-        "tags": ["Products"],
-        "security": [{ "bearerAuth": [] }],
+        "description": "Update a product by its ID (admin only)",
+        "operationId": "updateProduct",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "in": "path",
             "name": "id",
+            "in": "path",
+            "description": "Product ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -570,14 +913,30 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": { "type": "string" },
-                  "description": { "type": "string" },
-                  "price": { "type": "number" },
-                  "inventory": {
-                    "type": "object",
-                    "properties": {
-                      "quantity": { "type": "integer" }
+                  "name": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number",
+                    "format": "float"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "stock": {
+                    "type": "integer"
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
                     }
+                  },
+                  "featured": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -590,36 +949,41 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "product": { "$ref": "#/components/schemas/Product" }
-                  }
+                  "$ref": "#/components/schemas/Product"
                 }
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
           "404": {
-            "description": "Product not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
       },
       "delete": {
+        "tags": ["products"],
         "summary": "Delete a product",
-        "tags": ["Products"],
-        "security": [{ "bearerAuth": [] }],
+        "description": "Delete a product by its ID (admin only)",
+        "operationId": "deleteProduct",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "in": "path",
             "name": "id",
+            "in": "path",
+            "description": "Product ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -630,591 +994,46 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Product not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/categories": {
-      "get": {
-        "summary": "Get all categories",
-        "tags": ["Categories"],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "tree",
-            "schema": { "type": "boolean" },
-            "description": "Return as tree structure"
-          },
-          {
-            "in": "query",
-            "name": "active",
-            "schema": { "type": "boolean" },
-            "description": "Only active categories"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of categories",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "categories": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Category" }
+                    "message": {
+                      "type": "string"
                     }
                   }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Create a new category",
-        "tags": ["Categories"],
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name"],
-                "properties": {
-                  "name": { "type": "string" },
-                  "slug": { "type": "string" },
-                  "description": { "type": "string" },
-                  "parent": { "type": "string" },
-                  "image": {
-                    "type": "object",
-                    "properties": {
-                      "url": { "type": "string" },
-                      "alt": { "type": "string" }
-                    }
-                  },
-                  "isActive": { "type": "boolean" },
-                  "order": { "type": "integer" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Category created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "category": { "$ref": "#/components/schemas/Category" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/categories/{id}": {
-      "get": {
-        "summary": "Get category by ID or slug",
-        "tags": ["Categories"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" },
-            "description": "Category ID or slug"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Category found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "category": { "$ref": "#/components/schemas/Category" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Category not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "summary": "Update a category",
-        "tags": ["Categories"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": { "type": "string" },
-                  "slug": { "type": "string" },
-                  "description": { "type": "string" },
-                  "parent": { "type": "string" },
-                  "image": {
-                    "type": "object",
-                    "properties": {
-                      "url": { "type": "string" },
-                      "alt": { "type": "string" }
-                    }
-                  },
-                  "isActive": { "type": "boolean" },
-                  "order": { "type": "integer" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Category updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "category": { "$ref": "#/components/schemas/Category" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Category not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete a category",
-        "tags": ["Categories"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Category deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Cannot delete category with subcategories or products",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "404": {
-            "description": "Category not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders": {
-      "get": {
-        "summary": "Get all orders for current user",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "schema": { "type": "integer", "default": 1 }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": { "type": "integer", "default": 10 }
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of orders",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "orders": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Order" }
-                    }
-                  }
+                },
+                "example": {
+                  "message": "Product removed"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
-      },
+      }
+    },
+    "/products/{id}/reviews": {
       "post": {
-        "summary": "Create a new order",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["items", "billing", "shipping", "payment"],
-                "properties": {
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "product": { "type": "string" },
-                        "quantity": { "type": "integer" }
-                      }
-                    }
-                  },
-                  "billing": {
-                    "type": "object",
-                    "properties": {
-                      "name": { "type": "string" },
-                      "email": { "type": "string" },
-                      "phone": { "type": "string" },
-                      "address": { "$ref": "#/components/schemas/Address" }
-                    }
-                  },
-                  "shipping": {
-                    "type": "object",
-                    "properties": {
-                      "name": { "type": "string" },
-                      "address": { "$ref": "#/components/schemas/Address" },
-                      "method": { "type": "string" },
-                      "cost": { "type": "number" }
-                    }
-                  },
-                  "payment": {
-                    "type": "object",
-                    "properties": {
-                      "method": { "type": "string", "enum": ["credit_card", "paypal", "stripe", "bank_transfer"] }
-                    }
-                  },
-                  "notes": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Order created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "order": { "$ref": "#/components/schemas/Order" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders/{id}": {
-      "get": {
-        "summary": "Get a single order",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
+        "tags": ["reviews"],
+        "summary": "Create a product review",
+        "description": "Create a review for a product",
+        "operationId": "createProductReview",
+        "security": [
           {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
+            "bearerAuth": []
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Order found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "order": { "$ref": "#/components/schemas/Order" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Order not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders/{id}/cancel": {
-      "post": {
-        "summary": "Cancel an order",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
-            "in": "path",
             "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "reason": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Order cancelled successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "order": { "$ref": "#/components/schemas/Order" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Cannot cancel order",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "404": {
-            "description": "Order not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders/admin/all": {
-      "get": {
-        "summary": "Admin: Get all orders",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "schema": { "type": "integer", "default": 1 }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": { "type": "integer", "default": 10 }
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": { "type": "string" }
-          },
-          {
-            "in": "query",
-            "name": "sortBy",
-            "schema": { "type": "string", "default": "createdAt" }
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of all orders",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "total": { "type": "integer" },
-                    "orders": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Order" }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders/{id}/status": {
-      "put": {
-        "summary": "Admin: Update order status",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
             "in": "path",
-            "name": "id",
+            "description": "Product ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1223,253 +1042,16 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["status"],
+                "required": ["rating", "comment"],
                 "properties": {
-                  "status": { 
-                    "type": "string", 
-                    "enum": ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]
+                  "rating": {
+                    "type": "number",
+                    "format": "float",
+                    "minimum": 1,
+                    "maximum": 5
                   },
-                  "comment": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Order status updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "order": { "$ref": "#/components/schemas/Order" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "404": {
-            "description": "Order not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders/{id}/payment": {
-      "put": {
-        "summary": "Admin: Update payment status",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["status"],
-                "properties": {
-                  "status": { 
-                    "type": "string", 
-                    "enum": ["pending", "processing", "completed", "failed", "refunded"]
-                  },
-                  "transactionId": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Payment status updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "order": { "$ref": "#/components/schemas/Order" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Order not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/orders/admin/stats": {
-      "get": {
-        "summary": "Admin: Get order statistics",
-        "tags": ["Orders"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "period",
-            "schema": { "type": "string", "enum": ["day", "week", "month", "year"], "default": "week" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Order statistics",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "stats": {
-                      "type": "object",
-                      "properties": {
-                        "statusCounts": { "type": "object" },
-                        "totalSales": { "type": "number" },
-                        "orderCount": { "type": "integer" },
-                        "averageOrderValue": { "type": "number" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reviews/product/{productId}": {
-      "get": {
-        "summary": "Get reviews for a product",
-        "tags": ["Reviews"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "productId",
-            "required": true,
-            "schema": { "type": "string" }
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "schema": { "type": "integer", "default": 1 }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": { "type": "integer", "default": 10 }
-          },
-          {
-            "in": "query",
-            "name": "sortBy",
-            "schema": { "type": "string", "enum": ["createdAt", "helpful"], "default": "createdAt" }
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" }
-          },
-          {
-            "in": "query",
-            "name": "rating",
-            "schema": { "type": "integer", "minimum": 1, "maximum": 5 }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of reviews",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "total": { "type": "integer" },
-                    "ratingDistribution": {
-                      "type": "object",
-                      "properties": {
-                        "1": { "type": "integer" },
-                        "2": { "type": "integer" },
-                        "3": { "type": "integer" },
-                        "4": { "type": "integer" },
-                        "5": { "type": "integer" }
-                      }
-                    },
-                    "reviews": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Review" }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Product not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reviews": {
-      "post": {
-        "summary": "Create a new review",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["product", "rating", "comment"],
-                "properties": {
-                  "product": { "type": "string" },
-                  "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
-                  "title": { "type": "string" },
-                  "comment": { "type": "string" },
-                  "images": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "url": { "type": "string" },
-                        "alt": { "type": "string" }
-                      }
-                    }
+                  "comment": {
+                    "type": "string"
                   }
                 }
               }
@@ -1482,82 +1064,313 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "review": { "$ref": "#/components/schemas/Review" }
-                  }
+                  "$ref": "#/components/schemas/Review"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "get": {
+        "tags": ["reviews"],
+        "summary": "Get all reviews for a product",
+        "description": "Retrieve all reviews for a specific product",
+        "operationId": "getProductReviews",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reviews retrieved successfully",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Review"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "tags": ["categories"],
+        "summary": "Get all categories",
+        "description": "Retrieve all product categories",
+        "operationId": "getCategories",
+        "responses": {
+          "200": {
+            "description": "Categories retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["categories"],
+        "summary": "Create a new category",
+        "description": "Create a new product category (admin only)",
+        "operationId": "createCategory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/categories/{id}": {
+      "get": {
+        "tags": ["categories"],
+        "summary": "Get a single category",
+        "description": "Retrieve a category by its ID",
+        "operationId": "getCategoryById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "put": {
+        "tags": ["categories"],
+        "summary": "Update a category",
+        "description": "Update a category by its ID (admin only)",
+        "operationId": "updateCategory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["categories"],
+        "summary": "Delete a category",
+        "description": "Delete a category by its ID (admin only)",
+        "operationId": "deleteCategory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Category ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Category removed"
+                }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
       }
     },
-    "/reviews/{id}": {
+    "/cart": {
       "get": {
-        "summary": "Get a single review",
-        "tags": ["Reviews"],
-        "parameters": [
+        "tags": ["cart"],
+        "summary": "Get user's cart",
+        "description": "Retrieve the current user's shopping cart",
+        "operationId": "getUserCart",
+        "security": [
           {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
+            "bearerAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Review found",
+            "description": "Cart retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "review": { "$ref": "#/components/schemas/Review" }
-                  }
+                  "$ref": "#/components/schemas/Cart"
                 }
               }
             }
           },
-          "404": {
-            "description": "Review not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           }
         }
       },
-      "put": {
-        "summary": "Update a review",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
+      "post": {
+        "tags": ["cart"],
+        "summary": "Add item to cart",
+        "description": "Add an item to the user's shopping cart",
+        "operationId": "addToCart",
+        "security": [
           {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -1566,19 +1379,14 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["productId", "quantity"],
                 "properties": {
-                  "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
-                  "title": { "type": "string" },
-                  "comment": { "type": "string" },
-                  "images": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "url": { "type": "string" },
-                        "alt": { "type": "string" }
-                      }
-                    }
+                  "productId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1
                   }
                 }
               }
@@ -1587,294 +1395,44 @@
         },
         "responses": {
           "200": {
-            "description": "Review updated successfully",
+            "description": "Item added to cart successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "review": { "$ref": "#/components/schemas/Review" }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized to update this review",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "404": {
-            "description": "Review not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete a review",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Review deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized to delete this review",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "404": {
-            "description": "Review not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reviews/{id}/like": {
-      "post": {
-        "summary": "Like a review",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Review liked successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "likes": {
-                      "type": "object",
-                      "properties": {
-                        "count": { "type": "integer" },
-                        "users": {
-                          "type": "array",
-                          "items": { "type": "string" }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/Cart"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/ValidationError"
           },
-          "404": {
-            "description": "Review not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Unlike a review",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Review unliked successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "likes": {
-                      "type": "object",
-                      "properties": {
-                        "count": { "type": "integer" },
-                        "users": {
-                          "type": "array",
-                          "items": { "type": "string" }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Review not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           }
         }
       }
     },
-    "/reviews/admin/all": {
-      "get": {
-        "summary": "Admin: Get all reviews",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "schema": { "type": "integer", "default": 1 }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": { "type": "integer", "default": 10 }
-          },
-          {
-            "in": "query",
-            "name": "approved",
-            "schema": { "type": "boolean" }
-          },
-          {
-            "in": "query",
-            "name": "verified",
-            "schema": { "type": "boolean" }
-          },
-          {
-            "in": "query",
-            "name": "product",
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of all reviews",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "total": { "type": "integer" },
-                    "reviews": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Review" }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reviews/{id}/approve": {
+    "/cart/{productId}": {
       "put": {
-        "summary": "Admin: Approve a review",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
+        "tags": ["cart"],
+        "summary": "Update cart item",
+        "description": "Update an item's quantity in the cart",
+        "operationId": "updateCartItem",
+        "security": [
           {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
+            "bearerAuth": []
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Review approved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "review": { "$ref": "#/components/schemas/Review" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Review not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reviews/{id}/respond": {
-      "post": {
-        "summary": "Admin: Respond to a review",
-        "tags": ["Reviews"],
-        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
+            "name": "productId",
             "in": "path",
-            "name": "id",
+            "description": "Product ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1883,9 +1441,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["comment"],
+                "required": ["quantity"],
                 "properties": {
-                  "comment": { "type": "string" }
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
                 }
               }
             }
@@ -1893,208 +1454,564 @@
         },
         "responses": {
           "200": {
-            "description": "Response added successfully",
+            "description": "Cart item updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["cart"],
+        "summary": "Remove item from cart",
+        "description": "Remove an item from the user's shopping cart",
+        "operationId": "removeFromCart",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "description": "Product ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item removed from cart successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "tags": ["orders"],
+        "summary": "Get all orders",
+        "description": "Retrieve all orders (admin gets all orders, users get their own)",
+        "operationId": "getOrders",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of orders per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by order status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "shipped", "delivered", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "review": { "$ref": "#/components/schemas/Review" }
+                    "orders": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Order"
+                      }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
                   }
                 }
               }
             }
           },
-          "404": {
-            "description": "Review not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "post": {
+        "tags": ["orders"],
+        "summary": "Create a new order",
+        "description": "Create a new order from cart items",
+        "operationId": "createOrder",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["orderItems", "shippingAddress", "paymentMethod"],
+                "properties": {
+                  "orderItems": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "product": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "shippingAddress": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "type": "string"
+                      },
+                      "city": {
+                        "type": "string"
+                      },
+                      "postalCode": {
+                        "type": "string"
+                      },
+                      "country": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "paymentMethod": {
+                    "type": "string"
+                  }
+                }
               }
             }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "tags": ["orders"],
+        "summary": "Get order by ID",
+        "description": "Get details of a specific order",
+        "operationId": "getOrderById",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "put": {
+        "tags": ["orders"],
+        "summary": "Update order status",
+        "description": "Update an order's status (admin only)",
+        "operationId": "updateOrderStatus",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "processing", "shipped", "delivered", "cancelled"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/orders/{id}/pay": {
+      "put": {
+        "tags": ["orders"],
+        "summary": "Update order to paid",
+        "description": "Update order payment status",
+        "operationId": "updateOrderToPaid",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Payment ID"
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Payment status"
+                  },
+                  "update_time": {
+                    "type": "string",
+                    "description": "Payment update time"
+                  },
+                  "email_address": {
+                    "type": "string",
+                    "description": "Payer email address"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order payment updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/orders/{id}/deliver": {
+      "put": {
+        "tags": ["orders"],
+        "summary": "Update order to delivered",
+        "description": "Update order delivery status (admin only)",
+        "operationId": "updateOrderToDelivered",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order delivery status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
       }
     },
     "/users": {
       "get": {
-        "summary": "Admin: Get all users",
-        "tags": ["Users"],
-        "security": [{ "bearerAuth": [] }],
+        "tags": ["users"],
+        "summary": "Get all users",
+        "description": "Retrieve all users (admin only)",
+        "operationId": "getUsers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "in": "query",
             "name": "page",
-            "schema": { "type": "integer", "default": 1 }
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
           },
           {
-            "in": "query",
             "name": "limit",
-            "schema": { "type": "integer", "default": 10 }
-          },
-          {
             "in": "query",
-            "name": "sortBy",
-            "schema": { "type": "string", "default": "createdAt" }
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "schema": { "type": "string" }
-          },
-          {
-            "in": "query",
-            "name": "role",
-            "schema": { "type": "string", "enum": ["customer", "admin"] }
-          },
-          {
-            "in": "query",
-            "name": "active",
-            "schema": { "type": "boolean" }
+            "description": "Number of users per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of users",
+            "description": "Users retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "total": { "type": "integer" },
                     "users": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/User" }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/users/stats": {
-      "get": {
-        "summary": "Admin: Get user statistics",
-        "tags": ["Users"],
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": {
-            "description": "User statistics",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "stats": {
-                      "type": "object",
-                      "properties": {
-                        "totalUsers": { "type": "integer" },
-                        "newUsers": { "type": "integer" },
-                        "activeUsers": { "type": "integer" },
-                        "inactiveUsers": { "type": "integer" },
-                        "roleDistribution": { "type": "object" },
-                        "topCustomers": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "_id": { "type": "string" },
-                              "name": { "type": "string" },
-                              "email": { "type": "string" },
-                              "totalSpent": { "type": "number" },
-                              "orderCount": { "type": "integer" }
-                            }
-                          }
-                        }
+                      "items": {
+                        "$ref": "#/components/schemas/UserResponse"
                       }
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
                     }
                   }
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           }
         }
       }
     },
     "/users/{id}": {
       "get": {
-        "summary": "Admin: Get a single user",
-        "tags": ["Users"],
-        "security": [{ "bearerAuth": [] }],
+        "tags": ["users"],
+        "summary": "Get user by ID",
+        "description": "Get user details by ID (admin only)",
+        "operationId": "getUserById",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "in": "path",
             "name": "id",
+            "in": "path",
+            "description": "User ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "User details",
+            "description": "User retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "user": { "$ref": "#/components/schemas/User" },
-                    "stats": {
-                      "type": "object",
-                      "properties": {
-                        "orderCount": { "type": "integer" },
-                        "reviewCount": { "type": "integer" }
-                      }
-                    },
-                    "latestOrders": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "orderNumber": { "type": "string" },
-                          "createdAt": { "type": "string", "format": "date-time" },
-                          "total": { "type": "number" },
-                          "status": { "type": "string" }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
           "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
       },
       "put": {
-        "summary": "Admin: Update a user",
-        "tags": ["Users"],
-        "security": [{ "bearerAuth": [] }],
+        "tags": ["users"],
+        "summary": "Update user",
+        "description": "Update user details (admin only)",
+        "operationId": "updateUser",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "in": "path",
             "name": "id",
+            "in": "path",
+            "description": "User ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2104,10 +2021,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": { "type": "string" },
-                  "email": { "type": "string", "format": "email" },
-                  "role": { "type": "string", "enum": ["customer", "admin"] },
-                  "isActive": { "type": "boolean" }
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": ["user", "admin"]
+                  }
                 }
               }
             }
@@ -2119,135 +2043,67 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "user": { "$ref": "#/components/schemas/User" }
-                  }
+                  "$ref": "#/components/schemas/UserResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           },
           "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
       },
       "delete": {
-        "summary": "Admin: Delete a user",
-        "tags": ["Users"],
-        "security": [{ "bearerAuth": [] }],
+        "tags": ["users"],
+        "summary": "Delete user",
+        "description": "Delete a user (admin only)",
+        "operationId": "deleteUser",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "in": "path",
             "name": "id",
+            "in": "path",
+            "description": "User ID",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "User deleted or deactivated successfully",
+            "description": "User deleted successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Cannot delete own account",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/users/{id}/orders": {
-      "get": {
-        "summary": "Admin: Get user orders",
-        "tags": ["Users"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": { "type": "string" }
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "schema": { "type": "integer", "default": 1 }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": { "type": "integer", "default": 10 }
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of user orders",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "count": { "type": "integer" },
-                    "total": { "type": "integer" },
-                    "orders": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Order" }
+                    "message": {
+                      "type": "string"
                     }
                   }
+                },
+                "example": {
+                  "message": "User removed"
                 }
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
           "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
+            "$ref": "#/components/responses/NotFoundError"
           }
         }
       }

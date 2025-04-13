@@ -96,14 +96,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use('/api', apiLimiter); // Apply rate limiting to all API routes
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/reviews', reviewRoutes);
-
 // Dynamic Swagger configuration
 const swaggerOptions = {
   definition: {
@@ -123,10 +115,10 @@ const swaggerOptions = {
     },
     servers: [
       {
-        // Dynamically determine the server URL based on environment
+        // CRITICAL FIX: Include /api in the URL path
         url: process.env.NODE_ENV === 'production' 
-          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com')
-          : 'http://localhost:5000',
+          ? `${process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com'}/api`
+          : 'http://localhost:5000/api',
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
     ],
@@ -178,16 +170,23 @@ let swaggerDocument;
 try {
   swaggerDocument = JSON.parse(fs.readFileSync('./swagger.json', 'utf8'));
   
-  // Update server URLs dynamically even if loading from file
+  // CRITICAL FIX: Update server URLs to include /api prefix
   if (swaggerDocument.servers && Array.isArray(swaggerDocument.servers)) {
     swaggerDocument.servers = [
       {
         url: process.env.NODE_ENV === 'production' 
-          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com')
-          : 'http://localhost:5000',
+          ? `${process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com'}/api`
+          : 'http://localhost:5000/api',
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
     ];
+  }
+  
+  // CRITICAL FIX: If the paths in swagger.json don't have /api prefix, we need to ensure proper routing
+  // This patch assumes the paths in swagger.json are defined without the /api prefix
+  if (swaggerDocument.paths) {
+    // We don't modify the paths directly, as Swagger UI will prepend the server URL which now includes /api
+    console.log('Swagger paths will be mapped correctly with /api prefix from server URL');
   }
   
   console.log('Loaded Swagger configuration from file');
@@ -196,7 +195,15 @@ try {
   swaggerDocument = swaggerJsdoc(swaggerOptions);
 }
 
-// API Documentation
+// Routes (Define routes before Swagger to ensure they're properly loaded)
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/reviews', reviewRoutes);
+
+// API Documentation - Place after routes to ensure they're captured correctly
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
   explorer: true,
   customCss: '.swagger-ui .topbar { display: none }', // Hide the default Swagger UI top bar

@@ -19,9 +19,10 @@ const options = {
     },
     servers: [
       {
+        // CRITICAL FIX: Include /api in the URL path
         url: process.env.NODE_ENV === 'production' 
-          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com')
-          : 'http://localhost:5000',
+          ? `${process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com'}/api`
+          : 'http://localhost:5000/api',
         description: process.env.NODE_ENV === 'production' ? 'Production Server' : 'Development Server',
       },
     ],
@@ -63,7 +64,7 @@ const options = {
       { name: 'Users', description: 'User management' }
     ]
   },
-  apis: ['./routes/*.routes.js'], // Updated path to match your actual route files
+  apis: ['./routes/*.routes.js'], // Path to the API route files
 };
 
 const specs = swaggerJsdoc(options);
