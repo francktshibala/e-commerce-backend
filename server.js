@@ -38,10 +38,19 @@ const apiLimiter = rateLimit({
 
 // Middleware
 app.use(helmet()); // Set security-related HTTP headers
+
+// CORS configuration - more permissive for testing
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://e-commerce-backend-md2g.onrender.com',
+  origin: '*', // Allow all origins for testing
   credentials: true
 }));
+
+// For production, you can revert to specific origins:
+// app.use(cors({
+//   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+//   credentials: true
+// }));
+
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());

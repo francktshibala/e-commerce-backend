@@ -1,4 +1,3 @@
-
 const { validationResult, body, param, query } = require('express-validator');
 
 /**
@@ -37,6 +36,11 @@ const userValidators = {
     
     body('password')
       .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    
+    // Method is optional, will default to 'local'
+    body('method')
+      .optional()
+      .isIn(['local', 'google']).withMessage('Method must be local or google'),
     
     handleValidationErrors
   ],

@@ -22,12 +22,12 @@ const register = async (req, res, next) => {
     const userCount = await User.countDocuments();
     const role = userCount === 0 ? 'admin' : 'customer';
     
-    // Create new user
+    // Create new user with default method 'local' if not provided
     const user = new User({
       name,
       email,
       password,
-      method: 'local', // Local authentication
+      method: req.body.method || 'local', // Default to 'local' if not provided
       role // Set to admin if first user
     });
     
