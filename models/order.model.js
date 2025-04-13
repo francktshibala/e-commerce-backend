@@ -4,7 +4,7 @@ const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
     required: true,
-    unique: true
+    unique: true  // This already creates an index
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -236,8 +236,8 @@ orderSchema.methods.cancel = async function(reason, userId) {
   return this.save();
 };
 
-// Create indexes
-orderSchema.index({ orderNumber: 1 });
+// Create indexes - FIXED: removed duplicate orderNumber index
+// orderSchema.index({ orderNumber: 1 }); // REMOVED this line to fix duplicate index warning
 orderSchema.index({ user: 1 });
 orderSchema.index({ 'payment.status': 1 });
 orderSchema.index({ status: 1 });

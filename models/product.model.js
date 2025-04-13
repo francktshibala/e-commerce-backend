@@ -10,7 +10,7 @@ const productSchema = new mongoose.Schema({
   slug: {
     type: String,
     required: true,
-    unique: true,
+    unique: true,  // This already creates an index automatically
     lowercase: true,
     trim: true
   },
@@ -156,7 +156,7 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// Index for search
+// Index for search - No need to include 'slug' here as it's already indexed via unique:true
 productSchema.index({ 
   name: 'text', 
   description: 'text', 
@@ -197,6 +197,12 @@ productSchema.statics.findByCategory = function(categoryId) {
 productSchema.statics.findInStock = function() {
   return this.find({ 'inventory.available': { $gt: 0 } });
 };
+
+// Additional indexes but NOT for slug since it's already indexed
+productSchema.index({ categories: 1 }); // For faster category lookups
+productSchema.index({ isPublished: 1 }); // For filtering published products
+productSchema.index({ isFeatured: 1 }); // For featuring products
+productSchema.index({ price: 1 }); // For sorting by price
 
 const Product = mongoose.model('Product', productSchema);
 

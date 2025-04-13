@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const passport = require('passport');
 const fs = require('fs');
 const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 const rateLimit = require('express-rate-limit');
 
 // Import routes
@@ -37,19 +38,42 @@ const apiLimiter = rateLimit({
 });
 
 // Middleware
-app.use(helmet()); // Set security-related HTTP headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:"],
+    },
+  },
+})); // Set security-related HTTP headers with exceptions for Swagger UI
 
-// CORS configuration - more permissive for testing
+// CORS configuration - updated to be more flexible for development and production
+const allowedOrigins = [
+  process.env.FRONTEND_URL, 
+  'https://e-commerce-backend-md2g.onrender.com',
+  process.env.RENDER_EXTERNAL_URL
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://e-commerce-backend-md2g.onrender.com',
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (process.env.NODE_ENV === 'production') {
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // In development, allow all origins
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
-
-// For production, you can revert to specific origins:
-// app.use(cors({
-//   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-//   credentials: true
-// }));
 
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
@@ -64,14 +88,9 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/reviews', reviewRoutes);
 
-// Load Swagger JSON file
-let swaggerDocument;
-try {
-  swaggerDocument = JSON.parse(fs.readFileSync('./swagger.json', 'utf8'));
-} catch (error) {
-  console.error('Error loading swagger.json file:', error);
-  // Fallback to a basic Swagger document if file not found
-  swaggerDocument = {
+// Dynamic Swagger configuration
+const swaggerOptions = {
+  definition: {
     openapi: "3.0.3",
     info: {
       title: "E-Commerce API",
@@ -80,94 +99,73 @@ try {
     },
     servers: [
       {
-        url: "http://localhost:5000/api",
-        description: "Local server"
+        // Dynamically determine the server URL based on environment
+        url: process.env.NODE_ENV === 'production' 
+          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com/api')
+          : 'http://localhost:5000/api',
+        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
     ],
     tags: [
-      {
-        name: "Authentication",
-        description: "Authentication operations"
-      },
-      {
-        name: "Products",
-        description: "Product management"
-      },
-      {
-        name: "Categories",
-        description: "Category management"
-      },
-      {
-        name: "Orders",
-        description: "Order management"
-      },
-      {
-        name: "Reviews",
-        description: "Product review management"
-      },
-      {
-        name: "Users",
-        description: "User management (Admin only)"
-      }
+      { name: "Authentication", description: "Authentication operations" },
+      { name: "Products", description: "Product management" },
+      { name: "Categories", description: "Category management" },
+      { name: "Orders", description: "Order management" },
+      { name: "Reviews", description: "Product review management" },
+      { name: "Users", description: "User management (Admin only)" }
     ],
-    paths: {
-      "/orders/{id}/cancel": {
-        "post": {
-          "summary": "Cancel an order",
-          "tags": ["Orders"],
-          "security": [{ "bearerAuth": [] }],
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Order cancelled successfully",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "success": { "type": "boolean" },
-                      "message": { "type": "string" }
-                    }
-                  }
-                }
-              }
-            },
-            "400": {
-              "description": "Bad request",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Error"
-                  }
-                }
-              }
-            },
-            "404": {
-              "description": "Order not found",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Error"
-                  }
-                }
-              }
-            }
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT"
+        }
+      },
+      schemas: {
+        Error: {
+          type: "object",
+          properties: {
+            message: { type: "string" },
+            stack: { type: "string" }
           }
         }
       }
     }
-  };
+  },
+  apis: ['./routes/*.routes.js'] // Path to the API docs
+};
+
+// Try to load Swagger from file first, fall back to generated version if not available
+let swaggerDocument;
+try {
+  swaggerDocument = JSON.parse(fs.readFileSync('./swagger.json', 'utf8'));
+  
+  // Update server URLs dynamically even if loading from file
+  if (swaggerDocument.servers && Array.isArray(swaggerDocument.servers)) {
+    swaggerDocument.servers = [
+      {
+        url: process.env.NODE_ENV === 'production' 
+          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com/api')
+          : 'http://localhost:5000/api',
+        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
+      }
+    ];
+  }
+  
+  console.log('Loaded Swagger configuration from file');
+} catch (error) {
+  console.log('Generating Swagger documentation dynamically');
+  swaggerDocument = swaggerJsdoc(swaggerOptions);
 }
 
 // API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  explorer: true,
+  swaggerOptions: {
+    persistAuthorization: true
+  }
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -189,6 +187,8 @@ app.use(errorHandler);  // Handle all errors
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // For testing purposes
