@@ -30,11 +30,13 @@ require('./config/db.config');
 // Configure passport
 require('./config/passport.config');
 
-// Rate limiting
+// Rate limiting - Parse from environment variables if available
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later'
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false // Disable the `X-RateLimit-*` headers
 });
 
 // Middleware
@@ -46,13 +48,14 @@ app.use(helmet({
       "img-src": ["'self'", "data:"],
     },
   },
-})); // Set security-related HTTP headers with exceptions for Swagger UI
+})); 
 
 // CORS configuration - updated to be more flexible for development and production
 const allowedOrigins = [
   process.env.FRONTEND_URL, 
   'https://e-commerce-backend-md2g.onrender.com',
-  process.env.RENDER_EXTERNAL_URL
+  process.env.RENDER_EXTERNAL_URL,
+  // Add any additional origins you need to whitelist
 ].filter(Boolean); // Remove undefined values
 
 app.use(cors({
@@ -64,7 +67,7 @@ app.use(cors({
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`));
       }
     } else {
       // In development, allow all origins
@@ -74,6 +77,19 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
+
+// Handle CORS errors
+app.use((err, req, res, next) => {
+  if (err.message.includes('CORS')) {
+    res.status(403).json({
+      error: 'CORS Error',
+      message: err.message,
+      allowedOrigins
+    });
+  } else {
+    next(err);
+  }
+});
 
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
@@ -95,14 +111,22 @@ const swaggerOptions = {
     info: {
       title: "E-Commerce API",
       description: "API documentation for the e-commerce backend with OAuth 2.0 authentication",
-      version: "1.0.0"
+      version: "1.0.0",
+      contact: {
+        name: "Franck Tshibala",
+        url: "https://github.com/francktshibala/e-commerce-backend"
+      },
+      license: {
+        name: "MIT",
+        url: "https://opensource.org/licenses/MIT"
+      }
     },
     servers: [
       {
         // Dynamically determine the server URL based on environment
         url: process.env.NODE_ENV === 'production' 
-          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com/api')
-          : 'http://localhost:5000/api',
+          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com')
+          : 'http://localhost:5000',
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
     ],
@@ -120,6 +144,19 @@ const swaggerOptions = {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT"
+        },
+        googleOAuth: {
+          type: "oauth2",
+          flows: {
+            authorizationCode: {
+              authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+              tokenUrl: "https://oauth2.googleapis.com/token",
+              scopes: {
+                "profile": "User's basic profile",
+                "email": "User's email address"
+              }
+            }
+          }
         }
       },
       schemas: {
@@ -146,8 +183,8 @@ try {
     swaggerDocument.servers = [
       {
         url: process.env.NODE_ENV === 'production' 
-          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com/api')
-          : 'http://localhost:5000/api',
+          ? (process.env.API_URL || 'https://e-commerce-backend-md2g.onrender.com')
+          : 'http://localhost:5000',
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
     ];
@@ -162,21 +199,39 @@ try {
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
   explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }', // Hide the default Swagger UI top bar
   swaggerOptions: {
-    persistAuthorization: true
+    persistAuthorization: true,
+    docExpansion: 'none', // Initially collapsed
+    filter: true // Add search filter
   }
 }));
 
-// Health check endpoint
+// Enhanced health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Server is running' });
+  // Check MongoDB connection
+  const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      status: mongoStatus,
+      host: mongoose.connection.host || 'unknown'
+    },
+    uptime: process.uptime() + ' seconds'
+  });
 });
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
     message: 'Welcome to the E-commerce API',
-    documentation: '/api-docs'
+    documentation: '/api-docs',
+    health: '/health',
+    version: '1.0.0',
+    author: 'Franck Tshibala'
   });
 });
 
