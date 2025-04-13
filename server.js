@@ -41,7 +41,7 @@ app.use(helmet()); // Set security-related HTTP headers
 
 // CORS configuration - more permissive for testing
 app.use(cors({
-  origin: '*', // Allow all origins for testing
+  origin: process.env.FRONTEND_URL || 'https://e-commerce-backend-md2g.onrender.com',
   credentials: true
 }));
 
