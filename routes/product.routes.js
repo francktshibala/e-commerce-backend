@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/product.controller');
+const reviewController = require('../controllers/review.controller'); // Added import
 const { authenticateJWT, isAdmin, parseAuthToken } = require('../middleware/auth.middleware');
-const { productValidators, commonValidators } = require('../middleware/validation.middleware');
+const { productValidators, commonValidators, reviewValidators } = require('../middleware/validation.middleware');
 
 /**
  * @swagger
@@ -241,6 +242,120 @@ router.get('/:idOrSlug', parseAuthToken, productController.getProduct);
  *         description: Product not found
  */
 router.get('/:id/related', productValidators.productId, productController.getRelatedProducts);
+
+/**
+ * @swagger
+ * /products/{id}/reviews:
+ *   get:
+ *     summary: Get product reviews
+ *     description: Retrieve reviews for a specific product
+ *     tags: [Products, Reviews]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of reviews per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *       - in: query
+ *         name: rating
+ *         schema:
+ *           type: integer
+ *         description: Filter by rating
+ *     responses:
+ *       200:
+ *         description: List of product reviews
+ *       404:
+ *         description: Product not found
+ */
+router.get('/:id/reviews', commonValidators.pagination, commonValidators.sorting, reviewController.getProductReviews);
+
+/**
+ * @swagger
+ * /products/{id}/reviews:
+ *   post:
+ *     summary: Create product review
+ *     description: Add a review for a specific product
+ *     tags: [Products, Reviews]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rating
+ *               - comment
+ *             properties:
+ *               rating:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 description: Review rating (1-5)
+ *               title:
+ *                 type: string
+ *                 description: Review title
+ *               comment:
+ *                 type: string
+ *                 description: Review comment
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     alt:
+ *                       type: string
+ *     responses:
+ *       201:
+ *         description: Review created successfully
+ *       400:
+ *         description: Validation error or already reviewed
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Product not found
+ */
+router.post('/:id/reviews', authenticateJWT, reviewValidators.createReview, (req, res, next) => {
+  // Pass product ID from the URL to the request body
+  req.body.product = req.params.id;
+  reviewController.createReview(req, res, next);
+});
 
 /**
  * @swagger
